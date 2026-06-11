@@ -9,6 +9,29 @@ dist/
 .DS_Store
 Thumbs.db
 
+# Vercel
 .vercel
 .env.vercel
+
+# Playwright test artifacts
 .playwright-mcp/
+
+# Dev-only docs & planning files
+ADVANCED_FEATURES.md
+AI_IMPLEMENTATION_STATUS.md
+AI_SYSTEM_COMPLETE.md
+AI_SYSTEM_DESIGN.md
+KANBAN_DRAG_DROP.md
+PROJECT_ANALYTICS_PLAN.md
+
+# n8n workflow files (optional add-on, not needed for core deployment)
+n8n/
+
+# Old serverless stub (not used — backend is on Render)
+api/
+
+# Dev helper scripts (seed/smoke — not needed in production)
+server/scripts/
+
+# Vite build cache
+client/vite.config.ts.timestamp-*.mjs

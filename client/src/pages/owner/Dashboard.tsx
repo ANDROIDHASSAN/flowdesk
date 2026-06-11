@@ -234,25 +234,38 @@ export default function Dashboard() {
           <div className="chart-container">
             <h3 className="chart-title mb-1">Task Status</h3>
             <p className="chart-subtitle mb-4">Distribution of all tasks</p>
-            <ResponsiveContainer width="100%" height={160}>
-              <PieChart>
-                <Pie data={taskStatusData} cx="50%" cy="50%" innerRadius={45} outerRadius={72} paddingAngle={3} dataKey="value">
-                  {taskStatusData.map((entry, index) => (
-                    <Cell key={index} fill={entry.color} stroke="none" />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(value, name) => [`${value} tasks`, name]} />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="grid grid-cols-2 gap-2 mt-2">
-              {taskStatusData.map(item => (
-                <div key={item.name} className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: item.color }} />
-                  <span className="text-xs text-surface-500 truncate">{item.name}</span>
-                  <span className="text-xs font-bold text-surface-700 ml-auto">{item.value}</span>
-                </div>
-              ))}
-            </div>
+            {(() => {
+              const pieData = admin
+                ? [
+                    { name: 'Completed', value: admin.completedTasks, color: '#10B981' },
+                    { name: 'Active', value: Math.max(0, admin.totalTasks - admin.completedTasks - admin.overdueTasks), color: '#3B82F6' },
+                    { name: 'Overdue', value: admin.overdueTasks, color: '#F43F5E' },
+                  ].filter((d) => d.value > 0)
+                : taskStatusData;
+              return (
+                <>
+                  <ResponsiveContainer width="100%" height={160}>
+                    <PieChart>
+                      <Pie data={pieData} cx="50%" cy="50%" innerRadius={45} outerRadius={72} paddingAngle={3} dataKey="value">
+                        {pieData.map((entry, index) => (
+                          <Cell key={index} fill={entry.color} stroke="none" />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(value, name) => [`${value} tasks`, name]} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="grid grid-cols-2 gap-2 mt-2">
+                    {pieData.map((item) => (
+                      <div key={item.name} className="flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: item.color }} />
+                        <span className="text-xs text-surface-500 truncate">{item.name}</span>
+                        <span className="text-xs font-bold text-surface-700 ml-auto">{item.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              );
+            })()}
           </div>
         </div>
 
@@ -297,7 +310,7 @@ export default function Dashboard() {
                         {m.minutesToday > 0 ? `Active · ${fmtMinutes(m.minutesToday)} today` : 'Not active today'}
                       </p>
                     </div>
-                    <ScoreRing score={0} size={44} strokeWidth={4} />
+                    <ScoreRing score={getMemberScore(m.userId)} size={44} strokeWidth={4} />
                   </div>
 
                   <div className="grid grid-cols-3 gap-2 mb-3">
