@@ -1,0 +1,75 @@
+{
+  "name": "Pulse CRM — 3. Daily logging nudge (19:30 IST)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "cronExpression", "expression": "30 19 * * 1-6" }]
+        }
+      },
+      "name": "Evenings Mon-Sat 19:30 IST",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.PULSE_API_URL }}/api/automation/missing-logs",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-service-token", "value": "={{ $env.PULSE_SERVICE_TOKEN }}" }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Who hasn't logged today?",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            { "value1": "={{ $json.count }}", "operation": "larger", "value2": 0 }
+          ]
+        }
+      },
+      "name": "Anyone missing?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.PULSE_API_URL }}/api/automation/run/daily-nudge",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-service-token", "value": "={{ $env.PULSE_SERVICE_TOKEN }}" }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Send nudges (in-app + email)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 280]
+    }
+  ],
+  "connections": {
+    "Evenings Mon-Sat 19:30 IST": {
+      "main": [[{ "node": "Who hasn't logged today?", "type": "main", "index": 0 }]]
+    },
+    "Who hasn't logged today?": {
+      "main": [[{ "node": "Anyone missing?", "type": "main", "index": 0 }]]
+    },
+    "Anyone missing?": {
+      "main": [[{ "node": "Send nudges (in-app + email)", "type": "main", "index": 0 }], []]
+    }
+  },
+  "settings": { "timezone": "Asia/Kolkata" },
+  "active": false
+}

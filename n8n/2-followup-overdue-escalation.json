@@ -1,0 +1,40 @@
+{
+  "name": "Pulse CRM — 2. Follow-up overdue escalation (hourly)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "cronExpression", "expression": "5 * * * *" }]
+        }
+      },
+      "name": "Every hour",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.PULSE_API_URL }}/api/automation/run/followup-overdue",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-service-token", "value": "={{ $env.PULSE_SERVICE_TOKEN }}" }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Mark overdue + escalate to owner",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [480, 300]
+    }
+  ],
+  "connections": {
+    "Every hour": {
+      "main": [[{ "node": "Mark overdue + escalate to owner", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "timezone": "Asia/Kolkata" },
+  "active": false
+}
