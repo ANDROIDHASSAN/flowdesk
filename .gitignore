@@ -35,3 +35,8 @@ server/scripts/
 
 # Vite build cache
 client/vite.config.ts.timestamp-*.mjs
+
+# Playwright screenshots captured during testing
+*.png
+*.jpeg
+*.jpg
