@@ -30,6 +30,6 @@
     "@types/node-cron": "^3.0.11",
     "mongodb-memory-server": "^11.2.0",
     "tsx": "^4.19.2",
-    "typescript": "^5.7.2"
+    "typescript": "5.7.2"
   }
 }
