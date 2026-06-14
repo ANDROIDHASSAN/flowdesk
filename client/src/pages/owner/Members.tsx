@@ -51,7 +51,8 @@ export default function Members() {
       setDisplayName('');
       if (result.inviteLink) setInviteLink(result.inviteLink);
     } else {
-      toast.error((inviteResult.error as { data?: { message?: string } })?.data?.message || 'Failed to send invite');
+      const m = (inviteResult.error as any)?.data?.message;
+      toast.error(typeof m === 'string' ? m : 'Failed to send invite');
     }
   };
 

@@ -142,11 +142,11 @@ export const pulseApi = api.injectEndpoints({
 
     // ── Dashboard ────────────────────────────────────────────────────────
     getOverview: build.query<OverviewResponse, string>({
-      query: (businessId) => `/dashboard?businessId=${businessId}`,
+      query: (businessId) => `/dashboard/overview?businessId=${businessId}`,
       providesTags: ['Overview'],
     }),
     getMemberDetail: build.query<MemberDetailResponse, { userId: string; businessId: string }>({
-      query: ({ userId, businessId }) => `/analytics/employee/${userId}?businessId=${businessId}`,
+      query: ({ userId, businessId }) => `/dashboard/member/${userId}?businessId=${businessId}`,
       providesTags: ['MemberDetail'],
     }),
 

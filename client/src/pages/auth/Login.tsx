@@ -22,26 +22,39 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [demoLoading, setDemoLoading] = useState<string | null>(null);
   const [login, { isLoading }] = useLoginMutation();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const doLogin = async (loginEmail: string, loginPassword: string) => {
     setError('');
     try {
-      const res = await login({ email, password }).unwrap();
+      const res = await login({ email: loginEmail, password: loginPassword }).unwrap();
       dispatch(setCredentials(res));
       navigate('/dashboard');
     } catch (err: unknown) {
-      setError((err as { data?: { error?: string } })?.data?.error || 'Invalid email or password');
+      const status = (err as any)?.status;
+      const msg = (err as any)?.data?.error;
+      if (status === 'FETCH_ERROR' || status === 503) {
+        setError('Cannot reach the server. Please start the backend and try again.');
+      } else {
+        setError(typeof msg === 'string' ? msg : 'Invalid email or password');
+      }
     }
   };
 
-  const fillDemo = (acc: typeof DEMO_ACCOUNTS[0]) => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await doLogin(email, password);
+  };
+
+  const loginAsDemo = async (acc: typeof DEMO_ACCOUNTS[0]) => {
+    setDemoLoading(acc.label);
     setEmail(acc.email);
     setPassword(acc.password);
-    setError('');
+    await doLogin(acc.email, acc.password);
+    setDemoLoading(null);
   };
 
   return (
@@ -95,32 +108,44 @@ export default function Login() {
       </div>
 
       {/* Right panel */}
-      <div className="flex-1 flex items-center justify-center p-6 lg:p-12">
-        <div className="w-full max-w-md">
-          <div className="flex items-center gap-2 mb-8 lg:hidden">
+      <div className="flex-1 flex items-center justify-center p-6 lg:p-10 overflow-y-auto">
+        <div className="w-full max-w-md py-4">
+          {/* Mobile logo */}
+          <div className="flex items-center gap-2 mb-6 lg:hidden">
             <div className="w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center">
               <Zap size={16} className="text-white" />
             </div>
             <span className="font-display font-bold text-surface-900 text-lg">FlowDesk</span>
           </div>
-          <div className="mb-8">
+
+          <div className="mb-5">
             <h2 className="text-3xl font-display font-bold text-surface-900">Welcome back</h2>
             <p className="text-surface-500 mt-1">Sign in to manage your team</p>
           </div>
 
-          <div className="mb-6">
-            <p className="text-xs font-semibold text-surface-400 uppercase tracking-wider mb-3">Quick Demo Access</p>
+          {/* Demo access */}
+          <div className="mb-5">
+            <p className="text-xs font-semibold text-surface-400 uppercase tracking-wider mb-2.5">Quick Demo Access</p>
             <div className="flex gap-2">
               {DEMO_ACCOUNTS.map((acc) => (
-                <button key={acc.email} type="button" onClick={() => fillDemo(acc)}
-                  className={`flex-1 py-2.5 px-3 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90 ${acc.color}`}>
+                <button
+                  key={acc.email}
+                  type="button"
+                  onClick={() => loginAsDemo(acc)}
+                  disabled={isLoading || demoLoading !== null}
+                  className={`flex-1 py-2.5 px-3 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 ${acc.color}`}
+                >
+                  {demoLoading === acc.label ? (
+                    <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                  ) : null}
                   {acc.label}
                 </button>
               ))}
             </div>
           </div>
 
-          <div className="flex items-center gap-3 mb-6">
+          {/* Divider */}
+          <div className="flex items-center gap-3 mb-5">
             <div className="flex-1 h-px bg-surface-200" />
             <span className="text-xs text-surface-400 font-medium">or sign in with email</span>
             <div className="flex-1 h-px bg-surface-200" />
@@ -129,16 +154,32 @@ export default function Login() {
           {error && <Alert variant="error" className="mb-4" onClose={() => setError('')}>{error}</Alert>}
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <Input label="Email address" type="email" value={email} onChange={e => setEmail(e.target.value)}
-              placeholder="you@company.com" icon={<Mail size={16} />} autoComplete="email" required />
-            <Input label="Password" type="password" value={password} onChange={e => setPassword(e.target.value)}
-              placeholder="Enter your password" autoComplete="current-password" required />
+            <Input
+              label="Email address"
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder="you@company.com"
+              icon={<Mail size={16} />}
+              autoComplete="email"
+              required
+            />
+            <Input
+              label="Password"
+              type="password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              placeholder="Enter your password"
+              icon={<Lock size={16} />}
+              autoComplete="current-password"
+              required
+            />
             <Button type="submit" variant="primary" size="lg" full loading={isLoading} iconRight={<ArrowRight size={16} />}>
               Sign in to FlowDesk
             </Button>
           </form>
 
-          <p className="text-center text-sm text-surface-500 mt-6">
+          <p className="text-center text-sm text-surface-500 mt-5">
             Don't have an account?{' '}
             <Link to="/register" className="text-brand-600 font-semibold hover:text-brand-700 transition-colors">Create one free →</Link>
           </p>

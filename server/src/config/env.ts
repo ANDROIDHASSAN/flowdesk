@@ -13,7 +13,7 @@ export const env = {
   JWT_SECRET: required('JWT_SECRET'),
   SERVICE_TOKEN: required('SERVICE_TOKEN'),
   RESEND_API_KEY: process.env.RESEND_API_KEY || '',
-  EMAIL_FROM: process.env.EMAIL_FROM || 'Pulse CRM <onboarding@resend.dev>',
+  EMAIL_FROM: process.env.EMAIL_FROM || 'FlowDesk <onboarding@resend.dev>',
   CLIENT_URL: process.env.CLIENT_URL || 'http://localhost:5174',
   ENABLE_INTERNAL_CRON: process.env.ENABLE_INTERNAL_CRON === 'true',
   GROQ_API_KEY: process.env.GROQ_API_KEY || '',

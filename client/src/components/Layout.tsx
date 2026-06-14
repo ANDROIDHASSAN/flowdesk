@@ -3,10 +3,10 @@ import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, CheckSquare, Users, FolderKanban, MessageSquare,
   Sun, Bell, LogOut, ChevronLeft, ChevronRight, Settings, Trophy,
-  BookOpen, Calendar, CreditCard, BarChart3, Zap, Target, Menu, X,
+  Calendar, CreditCard, BarChart3, Zap, Target, Menu, X,
   TrendingUp, Shield
 } from 'lucide-react';
-import { useGetBusinessesQuery } from '../api/endpoints';
+import { useGetBusinessesQuery, useGetMyStreakQuery } from '../api/endpoints';
 import { useAppDispatch, useAppSelector } from '../store';
 import { logout } from '../store/authSlice';
 import AIChatWidget from './AIChatWidget';
@@ -51,7 +51,6 @@ const OWNER_NAV_SECTIONS = [
   {
     label: 'Tools',
     items: [
-      { to: '/flashcards', label: 'Flashcards', icon: <BookOpen size={18} /> },
       { to: '/calendar', label: 'Calendar', icon: <Calendar size={18} /> },
     ],
   },
@@ -69,7 +68,6 @@ const MEMBER_NAV_SECTIONS = [
     label: 'Progress',
     items: [
       { to: '/leaderboard', label: 'Leaderboard', icon: <Trophy size={18} /> },
-      { to: '/flashcards', label: 'Flashcards', icon: <BookOpen size={18} /> },
       { to: '/calendar', label: 'Calendar', icon: <Calendar size={18} /> },
     ],
   },
@@ -80,9 +78,14 @@ export default function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
   const user = useAppSelector((s) => s.auth.user);
+  const businessId = useAppSelector((s) => s.ui.businessId);
   const { data } = useGetBusinessesQuery();
   const isOwner = (data?.businesses || []).some((b) => b.role === 'OWNER');
   const navSections = isOwner ? OWNER_NAV_SECTIONS : MEMBER_NAV_SECTIONS;
+
+  const firstBizId = (data?.businesses || [])[0]?.business._id || '';
+  const effectiveBizId = businessId && businessId !== 'all' ? businessId : firstBizId;
+  const { data: streakData } = useGetMyStreakQuery(effectiveBizId, { skip: !effectiveBizId });
 
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -213,7 +216,7 @@ export default function Layout() {
           </div>
 
           <div className="flex items-center gap-2">
-            {isOwner && <StreakWidget streak={0} compact />}
+            {isOwner && <StreakWidget streak={streakData?.streak?.currentStreak ?? 0} compact />}
             <NotificationBell />
             <div className="hidden md:flex items-center gap-2 ml-1">
               <Avatar name={user?.name || 'User'} size="sm" />

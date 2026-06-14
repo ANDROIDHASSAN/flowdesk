@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { AuthedRequest, requireAuth } from '../middleware/auth';
-import { requireOwnership, requireMembership } from '../middleware/scope';
+import { requireOwnership, requireMembership, resolveScope } from '../middleware/scope';
 import { asyncHandler } from '../utils/errors';
 import { Payment } from '../models/Payment';
 import { TimeEntry } from '../models/TimeEntry';
@@ -15,9 +15,10 @@ router.use(requireAuth);
 router.get('/', asyncHandler(async (req: AuthedRequest, res) => {
   const { businessId, period, userId } = req.query as { businessId: string; period: string; userId: string };
   if (!businessId) return res.status(400).json({ error: 'businessId required' });
-  await requireOwnership(req.userId!, businessId);
 
-  const filter: Record<string, unknown> = { businessId };
+  const scope = await resolveScope(req.userId!, businessId, { ownerOnly: true });
+
+  const filter: Record<string, unknown> = { businessId: { $in: scope.businessIds } };
   if (period) filter.period = period;
   if (userId) filter.userId = userId;
 
@@ -103,24 +104,37 @@ router.post('/generate', asyncHandler(async (req: AuthedRequest, res) => {
 
 // PATCH /api/payments/:id
 router.patch('/:id', asyncHandler(async (req: AuthedRequest, res) => {
-  const { businessId } = req.body;
+  const { businessId, status, baseSalary, bonusAmount, deductionAmount, notes } = req.body as {
+    businessId?: string;
+    status?: string;
+    baseSalary?: number;
+    bonusAmount?: number;
+    deductionAmount?: number;
+    notes?: string;
+  };
   if (!businessId) return res.status(400).json({ error: 'businessId required' });
   await requireOwnership(req.userId!, businessId);
 
-  const update: Record<string, unknown> = { ...req.body };
-  if (req.body.status === 'APPROVED') {
-    update.approvedBy = req.userId;
+  const allowed_statuses = ['DRAFT', 'PENDING', 'APPROVED', 'PAID'];
+  const update: Record<string, unknown> = {};
+
+  if (status !== undefined) {
+    if (!allowed_statuses.includes(status)) return res.status(400).json({ error: 'Invalid status' });
+    update.status = status;
+    if (status === 'APPROVED') update.approvedBy = req.userId;
+    if (status === 'PAID') { update.paidAt = new Date(); update.approvedBy = req.userId; }
   }
-  if (req.body.status === 'PAID') {
-    update.paidAt = new Date();
-    update.approvedBy = req.userId;
-  }
-  if (req.body.baseSalary !== undefined || req.body.bonusAmount !== undefined || req.body.deductionAmount !== undefined) {
-    const payment = await Payment.findById(req.params.id).lean();
-    if (payment) {
-      const base = req.body.baseSalary ?? payment.baseSalary;
-      const bonus = req.body.bonusAmount ?? payment.bonusAmount;
-      const deduct = req.body.deductionAmount ?? payment.deductionAmount;
+  if (notes !== undefined) update.notes = notes;
+
+  if (baseSalary !== undefined || bonusAmount !== undefined || deductionAmount !== undefined) {
+    const existing = await Payment.findById(req.params.id).lean();
+    if (existing) {
+      const base = baseSalary ?? existing.baseSalary;
+      const bonus = bonusAmount ?? existing.bonusAmount;
+      const deduct = deductionAmount ?? existing.deductionAmount;
+      if (baseSalary !== undefined) update.baseSalary = base;
+      if (bonusAmount !== undefined) update.bonusAmount = bonus;
+      if (deductionAmount !== undefined) update.deductionAmount = deduct;
       update.totalAmount = base + bonus - deduct;
     }
   }

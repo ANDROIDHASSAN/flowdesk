@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { Types } from 'mongoose';
 import { AuthedRequest, requireAuth } from '../middleware/auth';
 import { requireOwnership } from '../middleware/scope';
 import { asyncHandler } from '../utils/errors';
@@ -40,8 +41,9 @@ router.get('/overview', asyncHandler(async (req: AuthedRequest, res) => {
     FollowUp.countDocuments({ businessId, status: 'PENDING' }),
   ]);
 
+  const bizOid = new Types.ObjectId(businessId);
   const totalMinutes = await TimeEntry.aggregate([
-    { $match: { businessId, date: { $gte: monthStart } } },
+    { $match: { businessId: bizOid, date: { $gte: monthStart } } },
     { $group: { _id: null, total: { $sum: '$minutes' } } },
   ]);
 

@@ -68,10 +68,10 @@ function CustomTooltip({ active, payload, label }: { active?: boolean; payload?:
 export default function Dashboard() {
   const businessId = useAppSelector((s) => s.ui.businessId);
   const { data: bizData } = useGetBusinessesQuery();
-  const ownedBizId = (bizData?.businesses || []).find((b) => b.role === 'OWNER')?.business._id || '';
-  const effectiveBizId = businessId !== 'all' ? businessId : ownedBizId;
+  const firstBizId = (bizData?.businesses || [])[0]?.business._id || '';
+  const effectiveBizId = businessId !== 'all' ? businessId : firstBizId;
 
-  const { data, isLoading } = useGetOverviewQuery(businessId, { pollingInterval: 120_000 });
+  const { data, isLoading } = useGetOverviewQuery(effectiveBizId, { skip: !effectiveBizId, pollingInterval: 120_000 });
   const { data: adminData } = useGetAdminOverviewQuery(effectiveBizId, { skip: !effectiveBizId });
   const { data: allStreakData } = useGetAllStreaksQuery(effectiveBizId, { skip: !effectiveBizId });
   const { data: myStreakData } = useGetMyStreakQuery(effectiveBizId, { skip: !effectiveBizId });
@@ -95,6 +95,14 @@ export default function Dashboard() {
     if (!s || s.weeklyActivity.length === 0) return 0;
     return Math.min(100, s.weeklyActivity[s.weeklyActivity.length - 1].score);
   };
+
+  const avgPerformance = useMemo(() => {
+    const streaks = (allStreakData?.streaks || []) as StreakEntry[];
+    if (streaks.length === 0) return null;
+    const total = streaks.reduce((s, st) =>
+      s + Math.min(100, st.weeklyActivity.length > 0 ? st.weeklyActivity[st.weeklyActivity.length - 1].score : 0), 0);
+    return Math.round(total / streaks.length);
+  }, [allStreakData]);
 
   if (isLoading) return <LoadingPage message="Loading dashboard..." />;
 
@@ -190,7 +198,7 @@ export default function Dashboard() {
           />
           <StatCard
             label="Avg Performance"
-            value="—/100"
+            value={avgPerformance !== null ? `${avgPerformance}/100` : '—/100'}
             icon={<TrendingUp size={20} className="text-purple-600" />}
             iconBg="bg-purple-100 text-purple-600"
             subtitle="team score"

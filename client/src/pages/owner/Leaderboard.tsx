@@ -37,8 +37,9 @@ const RANK_MEDAL = ['🥇', '🥈', '🥉'];
 export default function Leaderboard() {
   const globalBizId = useAppSelector((s) => s.ui.businessId);
   const { data: bizData } = useGetBusinessesQuery();
-  const ownedBizId = (bizData?.businesses || []).find((b) => b.role === 'OWNER')?.business._id || '';
-  const effectiveBizId = globalBizId !== 'all' ? globalBizId : ownedBizId;
+  // Fall back to any business the user belongs to (works for both owners and members)
+  const firstBizId = (bizData?.businesses || [])[0]?.business._id || '';
+  const effectiveBizId = globalBizId !== 'all' ? globalBizId : firstBizId;
 
   const [tab, setTab] = useState('weekly');
   const { data: streakData, isLoading } = useGetAllStreaksQuery(effectiveBizId, { skip: !effectiveBizId });

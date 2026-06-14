@@ -13,7 +13,10 @@ const FOLLOWUP_VARIANT = { PENDING: 'warning', DONE: 'success', OVERDUE: 'danger
 export default function MemberDetail() {
   const { userId = '' } = useParams();
   const businessId = useAppSelector((s) => s.ui.businessId);
-  const { data, isLoading, error } = useGetMemberDetailQuery({ userId, businessId });
+  const { data, isLoading, error } = useGetMemberDetailQuery(
+    { userId, businessId },
+    { skip: !userId }
+  );
 
   if (isLoading) return <div className="flex justify-center py-16"><Spinner size="lg" /></div>;
   if (error || !data) {

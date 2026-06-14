@@ -19,7 +19,7 @@ const Projects = lazy(() => import('./pages/owner/Projects'));
 const TaskBoard = lazy(() => import('./pages/owner/TaskBoard'));
 const AdminPanel = lazy(() => import('./pages/owner/AdminPanel'));
 const Leaderboard = lazy(() => import('./pages/owner/Leaderboard'));
-const Flashcards = lazy(() => import('./pages/shared/Flashcards'));
+const Payments = lazy(() => import('./pages/owner/Payments'));
 const CalendarPage = lazy(() => import('./pages/shared/CalendarPage'));
 
 function Home() {
@@ -62,10 +62,9 @@ export default function App() {
           <Route path="/my-day" element={<MyDay />} />
           <Route path="/my-followups" element={<MyFollowUps />} />
           {/* Shared routes */}
-          <Route path="/flashcards" element={<Flashcards />} />
           <Route path="/calendar" element={<CalendarPage />} />
           <Route path="/analytics" element={<Dashboard />} />
-          <Route path="/payments" element={<AdminPanel />} />
+          <Route path="/payments" element={<Payments />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { Types } from 'mongoose';
 import { AuthedRequest, requireAuth } from '../middleware/auth';
-import { requireOwnership, requireMembership } from '../middleware/scope';
+import { requireOwnership, requireMembership, resolveScope } from '../middleware/scope';
 import { Project } from '../models/Project';
 import { Task } from '../models/Task';
 import { TimeEntry } from '../models/TimeEntry';
@@ -14,25 +14,27 @@ router.use(requireAuth);
 router.get(
   '/',
   asyncHandler(async (req: AuthedRequest, res) => {
-    const businessId = String(req.query.businessId || '');
-    if (!businessId) throw badRequest('businessId is required');
-    await requireOwnership(req.userId!, businessId);
+    const businessIdParam = String(req.query.businessId || '');
+    if (!businessIdParam) throw badRequest('businessId is required');
 
-    const projects = await Project.find({ businessId }).sort({ createdAt: -1 }).lean();
+    const scope = await resolveScope(req.userId!, businessIdParam, { ownerOnly: true });
+    const projects = await Project.find({ businessId: { $in: scope.businessIds } }).sort({ createdAt: -1 }).lean();
 
     // Enrich with calculated fields
     const enriched = await Promise.all(
       projects.map(async (p) => {
         const tasks = await Task.find({ projectId: p._id }).lean();
-        const actualHours = await TimeEntry.aggregate([
-          { $match: { businessId: new Types.ObjectId(businessId), $or: tasks.map((t) => ({ taskId: t._id })) } },
-          { $group: { _id: null, total: { $sum: '$minutes' } } },
-        ]);
+        const actualHours = tasks.length
+          ? await TimeEntry.aggregate([
+              { $match: { businessId: new Types.ObjectId(String(p.businessId)), taskId: { $in: tasks.map((t) => t._id) } } },
+              { $group: { _id: null, total: { $sum: '$minutes' } } },
+            ])
+          : [];
 
         const actual = (actualHours[0]?.total || 0) / 60;
         const variance = actual - p.estimatedHours;
-        const varPercent = ((variance / p.estimatedHours) * 100).toFixed(1);
-        const cost = actual * (p.costRate || p.hourlyRate);
+        const varPercent = p.estimatedHours > 0 ? ((variance / p.estimatedHours) * 100).toFixed(1) : '0';
+        const cost = actual * (p.costRate ?? p.hourlyRate);
         const revenue = actual * p.hourlyRate;
         const profit = revenue - cost;
 
@@ -45,7 +47,7 @@ router.get(
           revenue,
           profit,
           profitMargin: revenue > 0 ? ((profit / revenue) * 100).toFixed(1) : '0',
-          efficiency: p.estimatedHours > 0 ? ((p.estimatedHours / actual) * 100).toFixed(1) : '100',
+          efficiency: p.estimatedHours > 0 && actual > 0 ? ((p.estimatedHours / actual) * 100).toFixed(1) : '100',
         };
       })
     );
@@ -115,7 +117,7 @@ router.get(
 
     const totalHours = taskDetails.reduce((s, t) => s + (t.actualHours || 0), 0);
     const revenue = totalHours * project.hourlyRate;
-    const cost = totalHours * (project.costRate || project.hourlyRate);
+    const cost = totalHours * (project.costRate ?? project.hourlyRate);
     const profit = revenue - cost;
 
     res.json({
@@ -129,7 +131,7 @@ router.get(
         cost: cost.toFixed(2),
         profit: profit.toFixed(2),
         profitMargin: revenue > 0 ? ((profit / revenue) * 100).toFixed(1) : '0',
-        efficiency: project.estimatedHours > 0 ? ((project.estimatedHours / totalHours) * 100).toFixed(1) : '100',
+        efficiency: project.estimatedHours > 0 && totalHours > 0 ? ((project.estimatedHours / totalHours) * 100).toFixed(1) : '100',
       },
     });
   })

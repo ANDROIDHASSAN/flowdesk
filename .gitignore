@@ -27,8 +27,8 @@ PROJECT_ANALYTICS_PLAN.md
 # n8n workflow files (optional add-on, not needed for core deployment)
 n8n/
 
-# Old serverless stub (not used — backend is on Render)
-api/
+# Old serverless stub at repo root (not used — backend is on Render)
+/api/
 
 # Dev helper scripts (seed/smoke — not needed in production)
 server/scripts/

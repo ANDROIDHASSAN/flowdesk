@@ -11,7 +11,7 @@ const GROQ_ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions';
 
 async function callGroq(messages: GroqMessage[]): Promise<string> {
   if (!env.GROQ_API_KEY) {
-    return generateFallbackResponse(messages.findLast((m) => m.role === 'user')?.content || '');
+    return generateFallbackResponse(messages.slice().reverse().find((m: GroqMessage) => m.role === 'user')?.content || '');
   }
 
   const res = await fetch(GROQ_ENDPOINT, {
@@ -31,7 +31,7 @@ async function callGroq(messages: GroqMessage[]): Promise<string> {
   if (!res.ok) {
     const errText = await res.text().catch(() => res.status.toString());
     console.error('[ai] Groq API error:', res.status, errText);
-    return generateFallbackResponse(messages.findLast((m) => m.role === 'user')?.content || '');
+    return generateFallbackResponse(messages.slice().reverse().find((m: GroqMessage) => m.role === 'user')?.content || '');
   }
 
   const data = (await res.json()) as {

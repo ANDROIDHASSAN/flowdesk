@@ -53,7 +53,7 @@ export default function BusinessSwitcher() {
           className="space-y-3"
         >
           <Input label="Business name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Mehta Digital Agency" />
-          {error && <p className="text-sm text-danger-600">{(error as { data?: { message?: string } })?.data?.message || 'Failed to create business'}</p>}
+          {error && <p className="text-sm text-danger-600">{(() => { const m = (error as any)?.data?.message; return typeof m === 'string' ? m : 'Failed to create business'; })()}</p>}
           <Button variant="primary" type="submit" disabled={isLoading} className="w-full">
             {isLoading ? 'Creating…' : 'Create business'}
           </Button>

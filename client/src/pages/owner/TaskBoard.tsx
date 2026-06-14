@@ -252,7 +252,7 @@ export default function TaskBoard() {
           />
           {createResult.error && (
             <p className="text-sm text-danger-600">
-              {(createResult.error as { data?: { message?: string } })?.data?.message || 'Failed to create task'}
+              {(() => { const m = (createResult.error as any)?.data?.message; return typeof m === 'string' ? m : 'Failed to create task'; })()}
             </p>
           )}
           <div className="flex justify-end gap-2 pt-2">

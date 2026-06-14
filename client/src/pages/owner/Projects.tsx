@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useGetProjectsQuery, useCreateProjectMutation } from '../../api/project-endpoints';
-import { Badge, Button, Card, EmptyState, Input, Modal, SectionTitle, Spinner, Textarea } from '../../components/ui';
+import { useGetBusinessesQuery } from '../../api/endpoints';
+import { Badge, Button, Card, EmptyState, Input, Modal, Select, Spinner, Textarea, toast } from '../../components/ui';
 import { useAppSelector } from '../../store';
 import { FolderOpen, Plus, TrendingUp, TrendingDown, DollarSign, Clock } from 'lucide-react';
 
@@ -13,8 +14,9 @@ const STATUS_VARIANT: Record<string, 'success' | 'warning' | 'danger' | 'info' |
 
 export default function Projects() {
   const businessId = useAppSelector((s) => s.ui.businessId);
-  const { data, isLoading } = useGetProjectsQuery(businessId);
+  const { data, isLoading } = useGetProjectsQuery(businessId || 'all');
   const [createProject, createResult] = useCreateProjectMutation();
+  const { data: bizData } = useGetBusinessesQuery();
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({
     name: '',
@@ -22,7 +24,12 @@ export default function Projects() {
     estimatedHours: '',
     hourlyRate: '',
     costRate: '',
+    selectedBusinessId: '',
   });
+
+  const isAllView = !businessId || businessId === 'all';
+  const businesses = bizData?.businesses || [];
+  const effectiveBusinessId = isAllView ? form.selectedBusinessId : businessId;
 
   const projects = data?.projects || [];
   const totalProfit = projects.reduce((s, p) => s + p.profit, 0);
@@ -31,9 +38,13 @@ export default function Projects() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!effectiveBusinessId) {
+      toast.error('Select a business to create this project under');
+      return;
+    }
     if (!form.name.trim() || !form.estimatedHours || !form.hourlyRate) return;
     const ok = await createProject({
-      businessId,
+      businessId: effectiveBusinessId,
       name: form.name,
       description: form.description || undefined,
       estimatedHours: parseFloat(form.estimatedHours),
@@ -41,8 +52,11 @@ export default function Projects() {
       costRate: form.costRate ? parseFloat(form.costRate) : undefined,
     }).unwrap().catch(() => null);
     if (ok) {
-      setForm({ name: '', description: '', estimatedHours: '', hourlyRate: '', costRate: '' });
+      setForm({ name: '', description: '', estimatedHours: '', hourlyRate: '', costRate: '', selectedBusinessId: '' });
       setShowAdd(false);
+      toast.success('Project created');
+    } else {
+      toast.error('Failed to create project');
     }
   };
 
@@ -173,6 +187,18 @@ export default function Projects() {
       {/* New project modal */}
       <Modal open={showAdd} onClose={() => setShowAdd(false)} title="Create Project" size="md">
         <form onSubmit={submit} className="space-y-4">
+          {isAllView && (
+            <Select
+              label="Business"
+              value={form.selectedBusinessId}
+              onChange={(e) => setForm({ ...form, selectedBusinessId: e.target.value })}
+              options={[
+                { value: '', label: 'Select a business…' },
+                ...businesses.map((b) => ({ value: b.business._id, label: b.business.name })),
+              ]}
+              required
+            />
+          )}
           <Input
             label="Project name"
             value={form.name}
@@ -213,7 +239,7 @@ export default function Projects() {
           />
           {createResult.error && (
             <p className="text-sm text-danger-600">
-              {(createResult.error as { data?: { message?: string } })?.data?.message || 'Failed to create project'}
+              {(() => { const m = (createResult.error as any)?.data?.message; return typeof m === 'string' ? m : 'Failed to create project'; })()}
             </p>
           )}
           <div className="flex justify-end gap-2 pt-2">
